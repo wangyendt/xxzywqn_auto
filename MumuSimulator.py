@@ -85,6 +85,7 @@ class MumuSimulator:
 
 
 if __name__ == '__main__':
+    print('programming start...')
     mumu_simulator = MumuSimulator()
     reader = easyocr.Reader(['ch_sim', 'en'])  # this needs to run only once to load the model into memory
     cv2.namedWindow('313_ye', cv2.WINDOW_NORMAL)
@@ -99,19 +100,18 @@ if __name__ == '__main__':
         pprint.pprint(result_dict)
         # print(result[0])
         # print(mumu_simulator.left, mumu_simulator.right, mumu_simulator.top, mumu_simulator.bottom)
-        if all(kw in result_dict for kw in ('爱丽榭', '挑战')):
-            if '邀请列表' in result_dict and '不接受非好友的组队邀请' in result_dict and cur_state == 'main':
-                cur_state = 'inviting'
-            else:
-                cur_state = 'main'
-        elif any(k in kw for kw in result_dict for k in ('进度', '自动选择')):
-            cur_state = 'fight'
+        if '邀请列表' in result_dict and '不接受非好友的组队邀请' in result_dict:
+            cur_state = 'inviting'
+        elif all(kw in result_dict for kw in ('爱丽榭', '挑战')):
+            cur_state = 'main'
         elif all(k in kw for kw in result_dict for k in ('击杀怪物', '挑战时间', '伤害统计')) or '点击任意区域关闭' in result_dict:
             print('here')
             pyautogui.moveTo(mumu_simulator.screen_left + 360, mumu_simulator.screen_top + 200)
             pyautogui.click()
             auto_choose_cnt = 0
             continue
+        elif any(k in kw for kw in result_dict for k in ('进度', '自动选择')):
+            cur_state = 'fight'
         else:
             cur_state = 'main'
         print(f'{cur_state=}')
@@ -131,7 +131,7 @@ if __name__ == '__main__':
             pyautogui.moveTo(mumu_simulator.screen_left + 640, mumu_simulator.screen_top + 320)
             pyautogui.click()
             inviting_cnt += 1
-            if inviting_cnt >= 2:
+            if inviting_cnt >= 6:
                 mumu_simulator.gui.bring_to_top(mumu_simulator.mumu)
                 pyautogui.moveTo(mumu_simulator.screen_left + 720, mumu_simulator.screen_top + 180)
                 pyautogui.click()
