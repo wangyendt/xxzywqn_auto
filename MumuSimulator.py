@@ -13,7 +13,8 @@
 """
 
 import win32gui
-from pywayne.gui import GuiOperation
+# from pywayne.gui import GuiOperation
+from Gui import GuiOperation
 import pyautogui
 import numpy as np
 import win32ui
@@ -22,6 +23,7 @@ from PIL import Image
 import easyocr
 import cv2
 import pprint
+import sys
 
 
 class MumuSimulator:
@@ -37,7 +39,11 @@ class MumuSimulator:
         self.w = 0
         self.h = 0
         self.screen_left = 0
+        self.screen_right = 0
         self.screen_top = 0
+        self.screen_bottom = 0
+        self.screen_left_to_right = 0
+        self.screen_top_to_bottom = 0
 
     def get_window_screenshot(self, hwnd):
         # 获取窗口的设备上下文（DC）
@@ -52,7 +58,9 @@ class MumuSimulator:
 
         # 获取窗口在屏幕上的位置
         rect = win32gui.GetWindowRect(hwnd)
-        self.screen_left, self.screen_top, _, _ = rect
+        self.screen_left, self.screen_top, self.screen_right, self.screen_bottom = rect
+        self.screen_left_to_right = self.screen_right - self.screen_left
+        self.screen_top_to_bottom = self.screen_bottom - self.screen_top
 
         # 创建位图对象
         bmp = win32ui.CreateBitmap()
@@ -85,10 +93,13 @@ class MumuSimulator:
 
 
 if __name__ == '__main__':
+
+    name = sys.argv[1] if len(sys.argv) > 1 else '爱丽榭'
+
     print('programming start...')
     mumu_simulator = MumuSimulator()
     reader = easyocr.Reader(['ch_sim', 'en'])  # this needs to run only once to load the model into memory
-    cv2.namedWindow('313_ye', cv2.WINDOW_NORMAL)
+    # cv2.namedWindow('313_ye', cv2.WINDOW_NORMAL)
     cur_state = 'main'
     inviting_cnt = 0
     auto_choose_cnt = 0
@@ -102,11 +113,12 @@ if __name__ == '__main__':
         # print(mumu_simulator.left, mumu_simulator.right, mumu_simulator.top, mumu_simulator.bottom)
         if '邀请列表' in result_dict and '不接受非好友的组队邀请' in result_dict:
             cur_state = 'inviting'
-        elif all(kw in result_dict for kw in ('爱丽榭', '挑战')):
+        elif all(kw in result_dict for kw in (name, '挑战')):
             cur_state = 'main'
         elif all(k in kw for kw in result_dict for k in ('击杀怪物', '挑战时间', '伤害统计')) or '点击任意区域关闭' in result_dict:
             print('here')
-            pyautogui.moveTo(mumu_simulator.screen_left + 360, mumu_simulator.screen_top + 200)
+            pyautogui.moveTo(mumu_simulator.screen_left + 360 * mumu_simulator.screen_left_to_right / (2331 - 1575),
+                             mumu_simulator.screen_top + 200 * mumu_simulator.screen_top_to_bottom / (1418 - 33))
             pyautogui.click()
             auto_choose_cnt = 0
             continue
@@ -115,6 +127,7 @@ if __name__ == '__main__':
         else:
             cur_state = 'main'
         print(f'{cur_state=}')
+        print(f'{mumu_simulator.screen_left=},{mumu_simulator.screen_top=},{mumu_simulator.screen_right=},{mumu_simulator.screen_bottom=}')
         if cur_state == 'main':
             for k, v in result_dict.items():
                 if '副本邀请' in k and v[1] > 0.5:
@@ -128,12 +141,14 @@ if __name__ == '__main__':
                     cur_state = 'inviting'
         elif cur_state == 'inviting':
             mumu_simulator.gui.bring_to_top(mumu_simulator.mumu)
-            pyautogui.moveTo(mumu_simulator.screen_left + 640, mumu_simulator.screen_top + 320)
+            pyautogui.moveTo(mumu_simulator.screen_left + 630 * mumu_simulator.screen_left_to_right / (2331 - 1575),
+                             mumu_simulator.screen_top + 320 * mumu_simulator.screen_top_to_bottom / (1418 - 33))
             pyautogui.click()
             inviting_cnt += 1
             if inviting_cnt >= 6:
                 mumu_simulator.gui.bring_to_top(mumu_simulator.mumu)
-                pyautogui.moveTo(mumu_simulator.screen_left + 720, mumu_simulator.screen_top + 180)
+                pyautogui.moveTo(mumu_simulator.screen_left + 720 * mumu_simulator.screen_left_to_right / (2331 - 1575),
+                                 mumu_simulator.screen_top + 180 * mumu_simulator.screen_top_to_bottom / (1418 - 33))
                 pyautogui.click()
                 inviting_cnt = 0
         elif cur_state == 'fight':
@@ -145,7 +160,8 @@ if __name__ == '__main__':
                     rect = v[0]
                     coord = np.mean(rect, axis=0).astype(int)
                     mumu_simulator.gui.bring_to_top(mumu_simulator.mumu)
-                    pyautogui.moveTo(mumu_simulator.screen_left + coord[0] - 90, mumu_simulator.screen_top + coord[1])
+                    pyautogui.moveTo(mumu_simulator.screen_left + coord[0] - 90 * mumu_simulator.screen_left_to_right / (2331 - 1575),
+                                     mumu_simulator.screen_top + coord[1])
                     pyautogui.click()
         continue
         # for i, res in enumerate(result):
